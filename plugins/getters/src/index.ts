@@ -1,11 +1,13 @@
 import { Store, Model, Models, Plugin } from '@rematch/core'
+import { STORE_NAME_KEY } from '@rematch/storeName'
 
-export const GETTERS_REF_KEY = '@@gettersRef'
+import sliceStateFactory from './sliceStateFactory'
+import subscribable from './subscribable'
 
 export const getters = {}
 const storeGetters = {}
 
-export function gettersFor(state: any, refKey: string? = GETTERS_REF_KEY) {
+export function gettersFor(state: any, refKey: string? = STORE_NAME_KEY) {
 	return storeGetters[state[refKey]]
 }
 
@@ -17,35 +19,26 @@ export function get (mapGettersToProps: Function, refKey: string?) {
 		)
 }
 
-export interface GettersConfig {
-	name?: string,
-	sliceState?: any,
-}
-
-const validateConfig = (config) => {
-	if (config.name && typeof config.name !== 'string') {
-		throw new Error('getters plugin config name must be a string')
-	}
-  if (config.sliceState && typeof config.sliceState !== 'function') {
-    throw new Error('getters plugin config sliceState must be a function')
-  }
-}
+export interface GettersConfig {}
 
 const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
-  validateConfig(config)
-
-  const sliceState = config.sliceState || ((rootState, model) => rootState[model.name])
-
 	const localGetters = {}
-
-	const refKey = config.name || GETTERS_REF_KEY
+	const factory = subscribable()
 
   return {
-		expose: {
-			getters
-		}
+		onInit() {
+			this.validate([
+				[
+					!this.storeNameKey,
+					'getters plugin requires the storeName plugin'
+				],
+				[
+					!this.selector,
+					'getters plugin requires the select plugin'
+				],
+			])
+		},
     onModel(model: Model) {
-			getters[model.name] = {}
 			localGetters[model.name] = {}
 
       const modelGetters =
@@ -57,28 +50,37 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 				this.validate([
 				  [
 				    typeof modelGetters[getterName] !== "function",
-				    `Gettersor (${model.name}/${getterName}) must be a function`
+				    `Getters (${getterPath}) must be a function`
 				  ]
 				])
 
-				getters[model.name][getterName] = (state, ...args) =>
-					modelGetters[getterName].call(
-						gettersFor(state, refKey)[model.name],
-						sliceState(state, model),
-						...args
-					)
-
 				localGetters[model.name][getterName] = (...args) =>
 					getters[model.name][getterName](this.storeGetState(), ...args)
+
+				factory.onReady((createSliceState) => {
+					const sliceState = createSliceState(
+						model,
+						getterName,
+						modelGetters[getterName]
+					)
+
+					getters[model.name][getterName] = this.selector(
+						sliceState,
+						(state: any) => modelGetters[getterName].call(
+							gettersFor(state, this.storeNameKey)[model.name],
+							state
+						)
+					)
+				})
 			})
     },
 		onStoreCreated(store: Store) {
-			const ref = store.name || 'fixme'
-			storeGetters[ref] = localGetters
-			store.model({
-				name: refKey,
-				state: ref
-			})
+			storeGetters[store.name || 'fixme'] = localGetters
+			factory.ready(sliceStateFactory(
+				localGetters,
+				this.sliceState,
+				this.storeGetState
+			))
 		}
   }
 }
