@@ -31,7 +31,7 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 		onInit() {
 			this.validate([
 				[
-					!this.storeNameKey,
+					!this.storeName,
 					'getters plugin requires the storeName plugin'
 				],
 				[
@@ -69,7 +69,7 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 					getters[model.name][getterName] = this.selector(
 						sliceState,
 						(state: any) => modelGetters[getterName].call(
-							gettersFor(state, this.storeNameKey)[model.name],
+							gettersFor(state, this.storeName.key)[model.name],
 							state
 						)
 					)
