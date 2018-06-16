@@ -1,5 +1,7 @@
 import { Store, Model, Models, Plugin } from '@rematch/core'
-import { STORE_NAME_KEY } from '@rematch/storeName'
+// import { STORE_NAME_KEY } from '@rematch/storeName'
+
+const STORE_NAME_KEY = '@@rematchStoreName'
 
 import sliceStateFactory from './sliceStateFactory'
 import subscribable from './subscribable'
