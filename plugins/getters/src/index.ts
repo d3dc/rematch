@@ -1,6 +1,6 @@
 import { Store, Model, Models, Plugin } from '@rematch/core'
 // import { STORE_NAME_KEY } from '@rematch/storeName'
-
+// TODO: FIXME
 const STORE_NAME_KEY = '@@rematchStoreName'
 
 import sliceStateFactory from './sliceStateFactory'
@@ -79,7 +79,7 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 		onStoreCreated(store: Store) {
 			storeGetters[store.name || 'fixme'] = localGetters
 			factory.ready(sliceStateFactory(
-				localGetters,
+				getters,
 				this.sliceState,
 				this.storeGetState
 			))
