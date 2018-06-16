@@ -1,4 +1,6 @@
-const { default: createGettersPlugin, getters, get, gettersFor, GETTERS_REF_KEY } = require('../src')
+const { default: createGettersPlugin, getters, get, gettersFor } = require('../src')
+const createSelectPlugin = require('../../select/src')
+const createStoreNamePlugin = require('../../storeName/src')
 const { init } = require('../../../src')
 
 describe('getters:', () => {
@@ -14,7 +16,11 @@ describe('getters:', () => {
     }
     const store = init({
       models: { a },
-      plugins: [createGettersPlugin()]
+      plugins: [
+        createStoreNamePlugin(),
+        createSelectPlugin(),
+        createGettersPlugin()
+      ]
     })
     const state = store.getState()
     const doubled = getters.a.double(state)
@@ -33,46 +39,11 @@ describe('getters:', () => {
     }
     const store = init({
       models: { a },
-      plugins: [createGettersPlugin()]
-    })
-    const state = store.getState()
-    const getters = gettersFor(state)
-    expect(typeof getters.a.double).toBe('function')
-    expect(getters.a.double()).toBe(4)
-  })
-
-  it('should allow passing in of params togetter', () => {
-    const a = {
-      state: 2,
-      reducers: {
-        increment: s => s + 1
-      },
-      getters: {
-        prependWithLetter: (s, letter) => letter + s
-      }
-    }
-    const store = init({
-      models: { a },
-      plugins: [createGettersPlugin()]
-    })
-    const state = store.getState()
-    const prepended = getters.a.prependWithLetter(state, 'P')
-    expect(prepended).toBe('P2')
-  })
-
-  it('should create a valid local getter', () => {
-    const a = {
-      state: 2,
-      reducers: {
-        increment: s => s + 1
-      },
-      getters: {
-        double: s => s * 2
-      }
-    }
-    const store = init({
-      models: { a },
-      plugins: [createGettersPlugin()]
+      plugins: [
+        createStoreNamePlugin(),
+        createSelectPlugin(),
+        createGettersPlugin()
+      ]
     })
     const state = store.getState()
     const getters = gettersFor(state)
@@ -82,7 +53,11 @@ describe('getters:', () => {
 
   test('should throw if getter is not a function', () => {
     const store = init({
-      plugins: [createGettersPlugin()]
+      plugins: [
+        createStoreNamePlugin(),
+        createSelectPlugin(),
+        createGettersPlugin()
+      ]
     })
     expect(() => store.model({
       name: 'a',
@@ -102,7 +77,11 @@ describe('getters:', () => {
     }
     const start = () => init({
       models: { a },
-      plugins: [createGettersPlugin()]
+      plugins: [
+        createStoreNamePlugin(),
+        createSelectPlugin(),
+        createGettersPlugin()
+      ]
     })
     expect(start).not.toThrow()
   })
@@ -120,7 +99,11 @@ describe('getters:', () => {
       }
       const store = init({
         models: { a },
-        plugins: [createGettersPlugin()]
+        plugins: [
+          createStoreNamePlugin(),
+          createSelectPlugin(),
+          createGettersPlugin()
+        ]
       })
       const state = store.getState()
       const connect = (mapState) => mapState(state)
@@ -147,7 +130,11 @@ describe('getters:', () => {
       }
       const store = init({
         models: { a },
-        plugins: [createGettersPlugin()]
+        plugins: [
+          createStoreNamePlugin(),
+          createSelectPlugin(),
+          createGettersPlugin()
+        ]
       })
       const state = store.getState()
       const doubled = getters.a.double(state)
@@ -171,7 +158,11 @@ describe('getters:', () => {
       }
       const store = init({
         models: { a },
-        plugins: [createGettersPlugin()]
+        plugins: [
+          createStoreNamePlugin(),
+          createSelectPlugin(),
+          createGettersPlugin()
+        ]
       })
       const state = store.getState()
       const doubled = getters.a.double(state)
@@ -195,7 +186,11 @@ describe('getters:', () => {
       }
       const store = init({
         models: { a },
-        plugins: [createGettersPlugin()]
+        plugins: [
+          createStoreNamePlugin(),
+          createSelectPlugin(),
+          createGettersPlugin()
+        ]
       })
       const state = store.getState()
       const doubled = getters.a.curriedDouble(state)
@@ -203,81 +198,39 @@ describe('getters:', () => {
     })
   })
 
-  describe('store ref: ', () => {
-    test('should throw if name config is not a string', () => {
-      const createGettersPlugin = require('../src').default
-      const { init } = require('../../../src')
-
-      const start = () => {
-        init({ plugins: [ createGettersPlugin({ name: (error) => error }) ] })
-      }
-
-      expect(start).toThrow()
-    })
-
-    it('should expose the store name', async () => {
-      const store = init({
-        plugins: [createGettersPlugin()]
-      })
-
-      const state = store.getState()
-      expect(state).toEqual({
-        [GETTERS_REF_KEY]: store.name
-      })
-    })
-
-    it('should expose the store name with a configured key', async () => {
-      const store = init({
-        plugins: [createGettersPlugin({
-          name: 'chicken'
-        })]
-      })
-
-      const state = store.getState()
-      expect(state).toEqual({
-        'chicken': store.name
-      })
-    })
-  })
-
-  describe('sliceState config: ', () => {
-    test('should throw if sliceState config is not a function', () => {
-      const createGettersPlugin = require('../src').default
-      const { init } = require('../../../src')
-
-      const start = () => {
-        init({ plugins: [ createGettersPlugin({ sliceState: 'error' }) ] })
-      }
-
-      expect(start).toThrow()
-    })
-
-    it('should allow access to the global state with a property configured sliceState method', () => {
-      const createGettersPlugin = require('../src').default
-      const { getters } = require('../src')
-      const { init } = require('../../../src')
-
-      const countA = {
+  describe('slice dependencies: ', () => {
+    it('should update getters after dependencies update', () => {
+      const a = {
         state: 2,
+        reducers: {
+          increment: s => s + 1
+        },
         getters: {
-          double: state => state.countB * 2
+          double: s => s * 2
         }
       }
-      const countB = {
-        state: 10,
-        getters: {
-          double: state => state.countA * 2
-        }
+      const b = {
+        state: 2,
+        getters: (get) => ({
+          quadruple: s => get.a.double() * 2
+        })
       }
-
       const store = init({
-        models: { countA, countB },
-        plugins: [createGettersPlugin({ sliceState: (rootState) => rootState })]
+        models: { a, b },
+        plugins: [
+          createStoreNamePlugin(),
+          createSelectPlugin(),
+          createGettersPlugin()
+        ]
       })
-
       const state = store.getState()
-      const result = getters.countB.double(state)
-      expect(result).toBe(4)
+      const double = getters.a.double(state)
+      const first = getters.b.quadruple(state)
+      store.dispatch.a.increment()
+      const second = getters.b.quadruple(state)
+      expect(double).toBe(4)
+      expect(first).toBe(8)
+      expect(second).toBe(12)
     })
   })
 })
