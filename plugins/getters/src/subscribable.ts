@@ -1,12 +1,12 @@
 export default function() {
   let subject
 	const subs = new Set()
-	const onReady = (nextSubject) => {
+	const ready = (nextSubject) => {
+    subject = nextSubject
 		subs.forEach(sub => sub(nextSubject))
-		subject = nextSubject
 		subs.clear()
 	}
-	const ready = (next) => {
+	const onReady = (next) => {
 		if (!subject) {
 			subs.add(next)
 			return () => subs.delete(next)

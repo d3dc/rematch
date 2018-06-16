@@ -41,6 +41,7 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 			])
 		},
     onModel(model: Model) {
+			console.log(model)
 			localGetters[model.name] = {}
 
       const modelGetters =
@@ -52,7 +53,7 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 				this.validate([
 				  [
 				    typeof modelGetters[getterName] !== "function",
-				    `Getters (${getterPath}) must be a function`
+				    `Getters (${model.name}/${getterName}) must be a function`
 				  ]
 				])
 
@@ -60,14 +61,15 @@ const createGettersPlugin = (config: GettersConfig = {}): Plugin => {
 					getters[model.name][getterName](this.storeGetState(), ...args)
 
 				factory.onReady((createSliceState) => {
-					const sliceState = createSliceState(
+					const depSlices = createSliceState(
 						model,
 						getterName,
 						modelGetters[getterName]
 					)
 
 					getters[model.name][getterName] = this.selector(
-						sliceState,
+						this.sliceState(model),
+						...depSlices, // ignored
 						(state: any) => modelGetters[getterName].call(
 							gettersFor(state, this.storeName.key)[model.name],
 							state

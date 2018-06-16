@@ -1,14 +1,19 @@
 import { Model } from '@rematch/core'
 
-// Create a clone of state that registers deps
+// Create a shallow clone of an object that registers deps
 function mockState (state, onDep) {
+  if (typeof state !== 'object') {
+    onDep()
+    return state
+  }
+
   return Object.keys(state).reduce((acc, key) => ({
-    ...acc,
-    get [key] () => {
-      onDep(key)
-      return state[key]
-    }
-  }))
+      ...acc,
+      get [key] () => {
+        onDep(key)
+        return state[key]
+      }
+    }), {})
 }
 
 function backup(obj) {
@@ -31,7 +36,7 @@ function withMockGetters (getters, onDep, next) {
         onDep([modelName, key])
         return original[key]()
       }
-    }))
+    }), {})
   }
   next()
   reset()
@@ -44,7 +49,6 @@ function sliceStateFactory(
 ) {
   // The factory tracks dependencies
   const deps = {}
-  let currentDeps
 
   // Gets a list of all state leafs
   const sliceDeps = (modelKey, getterKey) =>
@@ -56,29 +60,29 @@ function sliceStateFactory(
 
   return function(model: Model, getterKey: string, compute: Function) {
     const key = `${model.name}/${getterKey}`
+    deps[key] = []
+
     const mockedState = mockState(
       sliceState(getState(), model),
       (stateKey) => deps[key].push([model.name, stateKey])
     )
 
-    currentDeps = []
     withMockGetters(
       getters,
-      (dep) => deps[key].push(dep)
+      (dep) => deps[key].push(dep),
       () => compute(mockedState)
     )
-    deps[key] = currentDeps
 
     return (state) => {
-      return sliceDeps(model.name, getterKey).reduce((acc, dep) => {
-        if (!acc[dep[0]]) {
-          acc[dep[0]] = {}
+      return sliceDeps(model.name, getterKey).reduce((acc, dep) =>
+        (state) => {
+          if (dep[1] === undefined) {
+            return state[dep[0]]
+          } else {
+            return state[dep[0], dep[1]]
+          }
         }
-
-        acc[dep[0]][dep[1]] = state[dep[0], dep[1]]
-
-        return acc
-      }, {})
+      }, [])
     }
   }
 }
