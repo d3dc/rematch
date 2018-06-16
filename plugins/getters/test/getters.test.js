@@ -1,6 +1,6 @@
 const { default: createGettersPlugin, getters, get, gettersFor } = require('../src')
-const createSelectPlugin = require('../../select/src')
-const createStoreNamePlugin = require('../../storeName/src')
+const createSelectPlugin = require('../../select/src').default
+const createStoreNamePlugin = require('../../storeName/src').default
 const { init } = require('../../../src')
 
 describe('getters:', () => {
